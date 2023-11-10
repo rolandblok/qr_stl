@@ -93,8 +93,11 @@ def make_qr_code(qr_data, stl_file="qrcode.stl", include_bottom=True, cirlce=Tru
                 W = np.array(circle_matrix).shape[1]+1
                 H = 1
                 P = [L/2-1, W/2-1, -1]
+                # stl_box(P, L, W, H)
 
-                stl_file.write(stl_box(P, L, W, H))
+                cylinder = stl_cylinder([L/2-1, W/2-1, -1.5], L/2, 1)
+
+                stl_file.write(cylinder)
         else:
             for y in range(np.array(qr_matrix).shape[0]):
                 for x in range(np.array(qr_matrix).shape[1]):
@@ -193,10 +196,35 @@ def stl_box(P, L, W, H):
     str += stl_triangle(B, C, G)
     str += stl_triangle(B, G, F)
 
+    return str
 
 
+def stl_cylinder(center, radius, height, resolution=100):
+    '''
+    Create a cylinder for the STL file.
+    '''
+    str = ""
+    # loop over the resolution and make pie-slices and edges
+    for i in range(resolution):
+        # calculate the angle
+        angle = i/resolution*2*math.pi
+        # calculate the x and y coordinates
+        x = center[0] + radius*math.cos(angle)
+        y = center[1] + radius*math.sin(angle)
+        # calculate the x and y coordinates of the next point
+        x_next = center[0] + radius*math.cos((i+1)/resolution*2*math.pi)
+        y_next = center[1] + radius*math.sin((i+1)/resolution*2*math.pi)
+        # create the bottom pie-slice
+        str += stl_triangle([center[0], center[1], center[2]], [x, y, center[2]], [x_next, y_next, center[2]])
+        # create the top pie-slice
+        str += stl_triangle([center[0], center[1], center[2]+height], [x_next, y_next, center[2]+height], [x, y, center[2]+height])
+
+        # create the edges
+        str += stl_triangle([x, y, center[2]], [x_next, y_next, center[2]], [x, y, center[2]+height])
+        str += stl_triangle([x_next, y_next, center[2]], [x_next, y_next, center[2]+height], [x, y, center[2]+height])
 
     return str
+    
 
 # run this script if called from command
 if __name__ == '__main__':
