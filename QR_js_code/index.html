@@ -2,31 +2,149 @@
 
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>QR Code Generator</title>
-  </head>
-  <body>
-    <h1>QR Code Generator</h1>
-    <label for="input">Enter text to encode:</label>
-    <input type="text" id="input">
-    <button onclick="generateQR()">Generate QR Code</button>
-    <div id="qrcode" style="width:100px; height:100px; margin-top:15px;"></div>
+    <head>
+        <meta charset="UTF-8">
+        <title>QR Code Generator</title>
+    </head>
+    <body>
+        <h1>QR Code Generator</h1>
+        <label for="input">Enter text to encode:</label>
+
+        <input type="text" id="input" value="http://rolandblok.net">
+        <button onclick="generateQR()">Generate QR Code</button>
+    <div id="qrcode" style="width:100px; height:100px; margin-top:15px;display:none"></div>
+    <br>
+    <div id="qr_img"></div>
         <!-- https://davidshimjs.github.io/qrcodejs/ -->
     <!-- https://github.com/davidshimjs/qrcodejs -->
     <script src="qrcode/qrcode.min.js"></script>
     <script>
-        var qrcode = new QRCode(document.getElementById("qrcode"), {
+        // input.style.display = "none";
+        var my_qrcode = new QRCode(document.getElementById("qrcode"), {
             width : 100,
             height : 100
         });
       function generateQR() {
         var input = document.getElementById("input").value;
+ 
 
-        qrcode.makeCode(input);
+        my_qrcode.makeCode(input);
+
+        // get 2d array modules:
+        var modules = my_qrcode._oQRCode.modules;
+        modules = square_matrix_to_cicle(modules)
+        
+        pix_size = 8;
+        // Create a new canvas element
+        var canvas = document.createElement('canvas');
+        canvas.width = pix_size * modules.length;
+        canvas.height = canvas.width;
+
+        // Get the 2D rendering context
+        var ctx = canvas.getContext('2d');
+        ctx.fillStyle = 'black';
+        // Draw on the canvas
+        for (var i = 0; i < modules.length; i++) {
+            for (var j = 0; j < modules[i].length; j++) {
+                // if module is true, add text
+                if (modules[j][i]) {
+                    ctx.fillRect(i * pix_size, j * pix_size, pix_size, pix_size)
+                } 
+            }
+        }
+
+        // draw the canvas on an image, and set it to qr_img div    
+        // Convert the canvas to a data URL
+        var dataURL = canvas.toDataURL();
+        // get a new image element
+        var img = document.createElement('img');
+        img.src = dataURL;
+        // remove the current image element if it exists
+        if (document.getElementById('qr_img').hasChildNodes()) {
+            document.getElementById('qr_img').removeChild(document.getElementById('qr_img').firstChild);
+        }
+        // replace the image element to the desired location
+        document.getElementById('qr_img').appendChild(img);
+
 
 
       }
+
+      function square_matrix_to_cicle(sq_matrix){
+        // # qr width
+        qr_width = sq_matrix.length
+        // # qr radius
+        qr_R = (qr_width-1)/2
+        // # circle radius
+        circle_R = Math.sqrt(2*(qr_R**2 ))+1
+        // # square centre
+        grid_centre = Math.ceil(circle_R)
+        // # grid width
+        grid_width = grid_centre*2        
+
+        //     # create a square array of zeros that has size 2*radius
+        circle_matrix = new Array(grid_width+1).fill(0).map(() => new Array(grid_width+1).fill(0));
+
+        // seed random
+        //     # loop over the circle_matrix and add 1 for each position inside the circle
+        for (var y = 0; y < circle_matrix.length; y++) {
+            for (var x = 0; x < circle_matrix[y].length; x++) {
+                if ((x-grid_centre)**2 + (y-grid_centre)**2 < circle_R**2) {
+                    //determine if the position is outside the qr code
+                    // if (x < qr_top_x+1 || x >= qr_bot_x-1 || y < qr_top_y+1 || y >= qr_bot_y-1){
+                        // 50% change of adding a block
+                        if (Math.floor(Math.random() * 2) == 1){
+                            circle_matrix[x][y] = 1;
+                        }
+                    // }
+
+                }
+            }
+        }
+
+        //     # determine the top left corner of the qr code
+        qr_top_x = Math.floor(grid_centre - qr_R)
+        //     # clear the top left square of the qr code, box size 9*9, offset by -1
+        for(var i = 0; i < 9; i++) {
+            for(var j = 0; j < 9; j++) {
+                circle_matrix[qr_top_x-1+i][qr_top_x-1+j] = 0;
+            }
+        }
+        //     # same for top right    
+        // circle_matrix[qr_top_x-1:qr_top_x+9, qr_top_x+qr_width-9:qr_top_x+qr_width+1] = 0
+        for(var i = 0; i < 9; i++) {
+            for(var j = 0; j < 9; j++) {
+                circle_matrix[qr_top_x+qr_width-8+i][qr_top_x-1+j] = 0;
+            }
+        }
+        //     # same for bottom left
+        for(var i = 0; i < 9; i++) {
+            for(var j = 0; j < 9; j++) {
+                circle_matrix[qr_top_x-1+i][qr_top_x+qr_width-8+j] = 0;
+            }
+        }
+        //     # clear the qr code from the circle matrix
+        for(var i = 0; i < qr_width; i++) {
+            for(var j = 0; j < qr_width; j++) {
+                circle_matrix[qr_top_x+i][qr_top_x+j] = 0;
+            }
+        }
+
+        //     # add the qr code to the circle matrix
+        for(var i = 0; i < qr_width; i++) {
+            for(var j = 0; j < qr_width; j++) {
+                circle_matrix[qr_top_x+i][qr_top_x+j] = sq_matrix[i][j];
+            }
+        }
+        return circle_matrix
+    }      
+
+    //   onload function
+    window.onload = function() {
+        generateQR();
+    };
+
     </script>
+
   </body>
 </html>
