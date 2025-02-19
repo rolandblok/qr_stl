@@ -12,8 +12,17 @@
 
         <input type="text" id="input" style="width: 300px;" value="http://rolandblok.net">
         <button onclick="generateQR()">Generate QR Code</button>
+        <!-- add tickbox -->
+        <input type="checkbox" id="circle" checked>
+        <label for="circle">Circle</label>
+        
+
     <div id="qrcode" style="width:100px; height:100px; margin-top:15px;display:none"></div>
     <br>
+    <br>
+    <br>
+
+
     <div id="qr_img"></div>
         <!-- https://davidshimjs.github.io/qrcodejs/ -->
     <!-- https://github.com/davidshimjs/qrcodejs -->
@@ -32,7 +41,12 @@
 
         // get 2d array modules:
         var modules = my_qrcode._oQRCode.modules;
-        modules = square_matrix_to_cicle(modules)
+        // check if circle is checked
+        var circle = document.getElementById("circle").checked;
+        if (circle){
+            modules = square_matrix_to_cicle(modules);
+        }
+        // modules = square_matrix_to_cicle(modules)
         
         pix_size = 8;
         // Create a new canvas element
